@@ -4,19 +4,26 @@ from backend.app import main
 
 
 def test_get_items_returns_collected_items(monkeypatch):
-    expected_items = [
+    collected_items = [
         {
-            "title": "AI news",
+            "title": "New AI model launches",
             "url": "https://example.com/ai-news",
             "published_at": "2026-01-01",
-            "source": "Test Source",
+            "source": "TechCrunch AI",
             "summary": "Test summary.",
         }
     ]
-    monkeypatch.setattr(main, "collect_recent_items", lambda: expected_items)
+    monkeypatch.setattr(main, "collect_recent_items", lambda: collected_items)
 
     client = TestClient(main.app)
     response = client.get("/items")
 
     assert response.status_code == 200
-    assert response.json() == expected_items
+    assert response.json() == [
+        {
+            **collected_items[0],
+            "category": "models",
+            "relevance_score": 7,
+            "why_it_matters": "It may change the AI capabilities available to builders and users.",
+        }
+    ]

@@ -26,7 +26,7 @@ The API will be available at `http://127.0.0.1:8000`.
 
 - `GET /` returns the API welcome message.
 - `GET /health` returns the service health status.
-- `GET /items` fetches and returns recent AI news from the configured RSS feeds.
+- `GET /items` fetches, processes, and returns recent AI Radar items.
 
 ## RSS collector
 
@@ -36,6 +36,17 @@ date, source name, and summary when the feed provides one. Duplicate URLs and
 feeds that cannot be reached are skipped.
 
 Run the API and open `http://127.0.0.1:8000/items` to see the latest items.
+
+## Rule-based processing
+
+Each raw RSS item is processed locally by `ai/processor.py`; no AI or LLM API
+is used. It classifies the title and summary into `models`, `tools`,
+`research`, `funding`, `companies`, or `other` using simple keywords.
+
+The processor also returns a relevance score from 1 to 10. Items start at 3
+points and receive points for a trusted source, a summary, a category match,
+high-impact language such as "launch", and funding news. The
+`why_it_matters` field is a short category-specific explanation.
 
 ## Run tests
 

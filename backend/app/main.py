@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from ai.processor import process_item
 from collectors.rss_collector import collect_recent_items
 
 
@@ -19,6 +20,6 @@ def health_check() -> dict[str, str]:
 
 
 @app.get("/items")
-def get_items() -> list[dict[str, str]]:
-    """Collect recent AI news from the configured RSS sources."""
-    return collect_recent_items()
+def get_items() -> list[dict[str, object]]:
+    """Collect and process recent AI news from the configured RSS sources."""
+    return [process_item(item) for item in collect_recent_items()]
