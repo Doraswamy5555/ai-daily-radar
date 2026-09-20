@@ -1,6 +1,7 @@
 import sqlite3
 
 from database.db import (
+    get_radar_statistics,
     get_recent_radar_items,
     initialize_database,
     save_radar_item,
@@ -42,6 +43,12 @@ def test_initialize_database_creates_radar_items_table(tmp_path):
         "why_it_matters",
         "created_at",
     ]
+    with sqlite3.connect(database_path) as connection:
+        tables = {
+            row[0]
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
+        }
+    assert {"users", "user_preferences", "saved_items", "viewed_items"}.issubset(tables)
 
 
 def test_save_radar_item_and_retrieve_it(tmp_path):
@@ -80,3 +87,42 @@ def test_get_recent_radar_items_filters_by_category(tmp_path):
     assert len(stored_items) == 1
     assert stored_items[0]["url"] == "https://example.com/model"
     assert stored_items[0]["category"] == "models"
+
+
+def test_get_radar_statistics_uses_stored_data(tmp_path):
+    database_path = tmp_path / "ai_daily_radar.db"
+    save_radar_items(
+        [
+            sample_item(url="https://example.com/model", category="models"),
+            {**sample_item(url="https://example.com/tool", category="tools"), "source": "Second Source", "relevance_score": 8},
+        ],
+        database_path,
+    )
+
+    statistics = get_radar_statistics(database_path)
+
+    assert statistics["total_items"] == 2
+    assert statistics["high_relevance_items"] == 1
+    assert statistics["category_counts"]["models"] == 1
+    assert statistics["category_counts"]["tools"] == 1
+    assert statistics["source_counts"] == {"Second Source": 1, "Test Source": 1}
+    assert statistics["relevance_distribution"]["6"] == 1
+    assert statistics["relevance_distribution"]["8"] == 1
+    assert sum(statistics["daily_counts"].values()) == 2
+
+
+def test_get_radar_statistics_returns_empty_database_counts(tmp_path):
+    statistics = get_radar_statistics(tmp_path / "ai_daily_radar.db")
+
+    assert statistics["total_items"] == 0
+    assert statistics["high_relevance_items"] == 0
+    assert statistics["category_counts"] == {
+        "models": 0,
+        "tools": 0,
+        "research": 0,
+        "funding": 0,
+        "companies": 0,
+        "other": 0,
+    }
+    assert statistics["source_counts"] == {}
+    assert statistics["daily_counts"] == {}

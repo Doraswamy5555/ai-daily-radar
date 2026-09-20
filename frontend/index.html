@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="AI Daily Radar intelligence dashboard" />
+    <title>AI Daily Radar</title>
+    <link rel="stylesheet" href="/frontend/style.css" />
+    <script src="/frontend/app.js" defer></script>
+  </head>
+  <body>
+    <header id="app-header" class="site-header" hidden>
+      <a class="brand" href="/dashboard" aria-label="AI Daily Radar home">
+        <span class="brand-mark" aria-hidden="true">◉</span>
+        <span><strong>AI Daily Radar</strong><small>Discover what's new in AI. Understand what matters.</small></span>
+      </a>
+      <div class="header-controls">
+        <label class="search-box" for="search-input"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Search intelligence" /><button id="clear-search" type="button" aria-label="Clear search" hidden>×</button></label>
+        <button id="refresh-button" class="icon-button" type="button" aria-label="Refresh dashboard" title="Refresh data"><span aria-hidden="true">↻</span></button>
+        <button id="theme-toggle" class="icon-button" type="button" aria-label="Switch to light theme" title="Switch theme"><span aria-hidden="true">☀</span></button>
+        <details id="user-menu" class="user-menu" hidden>
+          <summary aria-label="Open user menu"><span id="user-initial" aria-hidden="true">U</span><span id="user-name">Account</span></summary>
+          <div class="user-menu-popover"><strong id="menu-user-name"></strong><small id="menu-user-email"></small><hr />
+            <button type="button" data-user-panel="preferences">Preferences</button><button type="button" data-user-panel="saved">Saved items</button><button type="button" data-user-panel="history">History</button><button id="logout-button" type="button">Logout</button>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <section id="auth-gate" class="auth-gate">
+      <div class="auth-intro"><p class="eyebrow">AI INTELLIGENCE, PERSONALIZED</p><h1>Make sense of what’s changing in AI.</h1><p>Save meaningful updates, track your reading history, and shape your radar around the topics you follow.</p></div>
+      <div class="auth-card"><div class="auth-tabs"><button class="auth-tab active" data-auth-view="signin" type="button">Sign in</button><button class="auth-tab" data-auth-view="signup" type="button">Create account</button></div>
+        <p id="auth-message" class="auth-message" aria-live="polite"></p>
+        <form id="signin-form"><label>Email<input name="email" type="email" autocomplete="email" required /></label><label>Password<input name="password" type="password" autocomplete="current-password" required /></label><button class="primary-button" type="submit">Sign in to radar</button></form>
+        <form id="signup-form" hidden><label>Name<input name="name" type="text" autocomplete="name" maxlength="100" required /></label><label>Email<input name="email" type="email" autocomplete="email" required /></label><label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" required /><small>Use at least 8 characters.</small></label><button class="primary-button" type="submit">Create account</button></form>
+      </div>
+    </section>
+
+    <main id="dashboard-content" class="dashboard-shell" hidden>
+      <section class="overview page-enter" aria-labelledby="overview-title">
+        <div><p class="eyebrow">AI INTELLIGENCE / LIVE RADAR</p><h1 id="overview-title">Today’s signal, <em>made clear.</em></h1><p class="lead">Track the developments shaping AI—from new models to the market moves behind them.</p></div>
+        <div class="status-pill"><span class="status-dot"></span><span id="status-text">Synchronizing radar</span></div>
+      </section>
+
+      <section class="kpi-grid" id="kpi-grid" aria-label="Radar overview statistics"></section>
+
+      <section class="analytics-section" aria-labelledby="analytics-title">
+        <div class="section-heading"><div><p class="eyebrow">ANALYTICS</p><h2 id="analytics-title">Signal distribution</h2></div><p>Calculated from your stored radar items.</p></div>
+        <div class="chart-grid">
+          <article class="chart-card chart-wide"><header><h3>AI Activity Trend</h3><p>Stored updates by day</p></header><div class="chart-area" id="activity-chart"></div></article>
+          <article class="chart-card"><header><h3>Category Distribution</h3><p>Topics in the radar</p></header><div class="chart-area" id="category-chart"></div></article>
+          <article class="chart-card"><header><h3>Source Distribution</h3><p>Where updates originate</p></header><div class="chart-area" id="source-chart"></div></article>
+          <article class="chart-card chart-wide"><header><h3>Relevance Distribution</h3><p>Score spread across stored updates</p></header><div class="chart-area" id="relevance-chart"></div></article>
+        </div>
+      </section>
+
+      <section class="feed-section" aria-labelledby="feed-title">
+        <div class="section-heading feed-heading"><div><p class="eyebrow">RADAR FEED</p><h2 id="feed-title">Latest AI Radar</h2></div><p id="item-count" aria-live="polite"></p></div>
+        <nav class="filters" aria-label="Filter radar items by category">
+          <button class="filter active" data-category="" type="button">All</button><button class="filter" data-category="models" type="button">Models</button><button class="filter" data-category="tools" type="button">Tools</button><button class="filter" data-category="research" type="button">Research</button><button class="filter" data-category="funding" type="button">Funding</button><button class="filter" data-category="companies" type="button">Companies</button><button class="filter" data-category="other" type="button">Other</button>
+        </nav>
+        <div id="feed" class="feed" aria-live="polite"></div>
+      </section>
+    </main>
+    <aside id="user-panel" class="user-panel" hidden aria-live="polite"><button id="close-user-panel" class="icon-button" type="button" aria-label="Close panel">×</button><div id="user-panel-content"></div></aside>
+    <div id="tooltip" class="chart-tooltip" role="status" hidden></div>
+  </body>
+</html>

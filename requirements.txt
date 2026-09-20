@@ -3,3 +3,6 @@ uvicorn[standard]
 feedparser
 httpx
 pytest
+bcrypt
+email-validator
+itsdangerous
