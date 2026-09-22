@@ -1,16 +1,15 @@
 """Password hashing and signed-cookie helpers for local user accounts."""
 
-import os
-import secrets
-
 import bcrypt
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+
+from backend.app.settings import get_settings
 
 
 SESSION_COOKIE_NAME = "ai_daily_radar_session"
 SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
-_session_secret = os.getenv("SESSION_SECRET") or secrets.token_urlsafe(32)
-_serializer = URLSafeTimedSerializer(_session_secret, salt="ai-daily-radar-session")
+settings = get_settings()
+_serializer = URLSafeTimedSerializer(settings.session_secret, salt="ai-daily-radar-session")
 
 
 def hash_password(password: str) -> str:

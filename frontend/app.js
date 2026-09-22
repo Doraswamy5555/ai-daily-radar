@@ -4,7 +4,7 @@ const colors = ["#82a8ff", "#71d2bd", "#e6bd77", "#c79af1", "#f08d9d", "#77869c"
 
 const feed = document.querySelector("#feed");
 const tooltip = document.querySelector("#tooltip");
-const chartTargets = ["activity-chart", "category-chart", "source-chart", "relevance-chart"];
+const chartTargets = ["growth-chart", "category-activity-chart"];
 
 function request(path) {
   return fetch(path).then((response) => {
@@ -48,7 +48,7 @@ async function loadDashboard({ refresh = false } = {}) {
 function renderLoading() {
   feed.replaceChildren(...Array.from({ length: 3 }, () => element("div", "skeleton")));
   chartTargets.forEach((id) => document.querySelector(`#${id}`).replaceChildren(element("div", "chart-empty", "Preparing live analytics…")));
-  document.querySelector("#kpi-grid").replaceChildren(...Array.from({ length: 6 }, () => element("div", "kpi-card skeleton")));
+  document.querySelector("#kpi-grid").replaceChildren(...Array.from({ length: 7 }, () => element("div", "kpi-card skeleton")));
 }
 
 function renderDashboard() {
@@ -60,9 +60,9 @@ function renderDashboard() {
 function renderKpis() {
   const stats = state.stats;
   const cards = [
-    ["Total AI Updates", stats.total_items], ["High Relevance", stats.high_relevance_items],
-    ["AI Models", stats.category_counts.models], ["AI Tools", stats.category_counts.tools],
-    ["Research", stats.category_counts.research], ["Funding", stats.category_counts.funding],
+    ["New Updates", stats.total_items], ["High Signal", stats.high_relevance_items],
+    ["Models", stats.category_counts.models], ["Tools", stats.category_counts.tools],
+    ["Research", stats.category_counts.research], ["Funding", stats.category_counts.funding], ["Companies", stats.category_counts.companies],
   ];
   const grid = document.querySelector("#kpi-grid");
   grid.replaceChildren(...cards.map(([label, value]) => {
@@ -75,16 +75,16 @@ function renderKpis() {
 }
 
 function renderCharts() {
-  const daily = Object.entries(state.stats.daily_counts);
-  renderLineChart("activity-chart", daily);
-  renderDonutChart("category-chart", Object.entries(state.stats.category_counts));
-  renderBarChart("source-chart", Object.entries(state.stats.source_counts), "Source");
-  renderBarChart("relevance-chart", Object.entries(state.stats.relevance_distribution), "Score");
+  renderGrowthChart("growth-chart", state.stats.category_daily_counts || {});
+  renderBarChart("category-activity-chart", ["tools", "models", "research", "funding", "companies"].map((name) => [name, state.stats.category_counts[name] || 0]), "Category");
+  const counts = state.stats.category_counts;
+  document.querySelector("#activity-summary").textContent = `${state.stats.total_items} radar updates stored · ${counts.models || 0} model-related · ${counts.tools || 0} tool-related · ${counts.research || 0} research.`;
+  document.querySelector("#period-note").textContent = Object.keys(state.stats.daily_counts).length < 2 ? "Limited data: all stored updates" : "All stored data";
 }
 
 function renderFeed() {
   const query = state.search.trim().toLowerCase();
-  const visible = state.items.filter((item) => [item.title, item.summary, item.source, item.category].join(" ").toLowerCase().includes(query));
+  const visible = state.items.filter((item) => [item.title, item.summary, item.source, item.category].join(" ").toLowerCase().includes(query)).sort((a, b) => b.relevance_score - a.relevance_score);
   document.querySelector("#item-count").textContent = `${visible.length} ${visible.length === 1 ? "update" : "updates"}`;
   if (!state.items.length) return renderEmpty("No AI updates yet", "The collector has not stored any updates yet.");
   if (!visible.length) return renderEmpty("No matching AI updates found", "Try a different search or remove the active filter.");
@@ -121,19 +121,71 @@ function renderError() {
   chartTargets.forEach((id) => document.querySelector(`#${id}`).replaceChildren(element("div", "chart-empty", "Analytics will appear when the API is available.")));
 }
 
-function renderLineChart(id, pairs) {
-  const target = document.querySelector(`#${id}`); if (pairs.length < 2) return emptyChart(target, "More than one day of stored updates is needed for a trend.");
-  const { canvas, ctx, width, height } = chartCanvas(target); const padding = 28; const values = pairs.map(([, value]) => value); const max = Math.max(...values, 1); const hits = [];
-  ctx.strokeStyle = gridColor(); ctx.lineWidth = 1; for (let i = 0; i < 3; i += 1) { const y = padding + (height - padding * 2) * i / 2; ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(width - padding, y); ctx.stroke(); }
-  ctx.strokeStyle = colors[0]; ctx.lineWidth = 2.5; ctx.beginPath(); pairs.forEach(([label, value], i) => { const x = padding + (width - padding * 2) * i / (pairs.length - 1); const y = height - padding - value / max * (height - padding * 2); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); hits.push({ x, y, label: `${label}: ${value} updates` }); }); ctx.stroke();
-  hits.forEach(({ x, y }) => { ctx.fillStyle = colors[0]; ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill(); }); bindTooltip(canvas, hits);
-}
+function renderGrowthChart(id, byDay) {
+  const target = document.querySelector(`#${id}`);
+  const days = Object.keys(byDay || {}).sort();
+  const series = ["tools", "models", "research"];
 
-function renderDonutChart(id, pairs) {
-  const target = document.querySelector(`#${id}`); const nonzero = pairs.filter(([, value]) => value > 0); if (!nonzero.length) return emptyChart(target, "Category distribution will appear after items are stored.");
-  const { canvas, ctx, width, height } = chartCanvas(target); const total = nonzero.reduce((sum, [, value]) => sum + value, 0); const centerX = width / 2, centerY = height / 2 - 5, radius = Math.min(width, height) / 2 - 25; let start = -Math.PI / 2; const hits = [];
-  nonzero.forEach(([label, value], i) => { const part = value / total * Math.PI * 2; ctx.strokeStyle = colors[categories.indexOf(label)] || colors[i]; ctx.lineWidth = 22; ctx.beginPath(); ctx.arc(centerX, centerY, radius, start, start + part); ctx.stroke(); const angle = start + part / 2; hits.push({ x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius, label: `${label}: ${value}` }); start += part; });
-  ctx.fillStyle = textColor(); ctx.textAlign = "center"; ctx.font = "700 22px system-ui"; ctx.fillText(String(total), centerX, centerY + 3); ctx.fillStyle = mutedColor(); ctx.font = "11px system-ui"; ctx.fillText("updates", centerX, centerY + 19); target.append(legend(nonzero)); bindTooltip(canvas, hits);
+  if (days.length < 2) {
+    emptyChart(target, "Not enough historical data yet. Continue collecting updates to see category growth over time.");
+    return;
+  }
+
+  const { canvas, ctx, width, height } = chartCanvas(target);
+  const padding = { top: 16, right: 16, bottom: 32, left: 30 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const maxValue = Math.max(
+    1,
+    ...days.flatMap((day) => series.map((category) => Number(byDay[day][category]) || 0)),
+  );
+  const hits = [];
+
+  ctx.strokeStyle = gridColor();
+  ctx.lineWidth = 1;
+  for (let index = 0; index <= 2; index += 1) {
+    const y = padding.top + chartHeight * index / 2;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(width - padding.right, y);
+    ctx.stroke();
+  }
+
+  series.forEach((category, seriesIndex) => {
+    ctx.strokeStyle = colors[seriesIndex];
+    ctx.fillStyle = colors[seriesIndex];
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+
+    days.forEach((day, index) => {
+      const updates = Number(byDay[day][category]) || 0;
+      const x = padding.left + chartWidth * index / (days.length - 1);
+      const y = padding.top + chartHeight - updates / maxValue * chartHeight;
+      if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      hits.push({ x, y, label: `${day} · ${categoryLabel(category)} · ${updates} updates` });
+    });
+    ctx.stroke();
+
+    days.forEach((day, index) => {
+      const updates = Number(byDay[day][category]) || 0;
+      const x = padding.left + chartWidth * index / (days.length - 1);
+      const y = padding.top + chartHeight - updates / maxValue * chartHeight;
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  });
+
+  ctx.fillStyle = mutedColor();
+  ctx.font = "10px system-ui";
+  ctx.textAlign = "center";
+  days.forEach((day, index) => {
+    const x = padding.left + chartWidth * index / (days.length - 1);
+    ctx.fillText(formatChartDate(day), x, height - 9);
+  });
+
+  target.append(legend(series.map((category) => [category, null])));
+  bindTooltip(canvas, hits);
 }
 
 function renderBarChart(id, pairs, labelName) {
@@ -144,25 +196,31 @@ function renderBarChart(id, pairs, labelName) {
 
 function chartCanvas(target) { target.replaceChildren(); const canvas = document.createElement("canvas"); target.append(canvas); const rect = target.getBoundingClientRect(), ratio = window.devicePixelRatio || 1; canvas.width = rect.width * ratio; canvas.height = rect.height * ratio; const ctx = canvas.getContext("2d"); ctx.scale(ratio, ratio); return { canvas, ctx, width: rect.width, height: rect.height }; }
 function emptyChart(target, message) { target.replaceChildren(element("div", "chart-empty", message)); }
-function legend(items) { const row = element("div", "legend"); items.forEach(([name, value]) => { const item = element("span"); const dot = element("i"); dot.style.background = colors[categories.indexOf(name)] || colors[0]; item.append(dot, document.createTextNode(`${name}: ${value}`)); row.append(item); }); return row; }
+function legend(items) { const row = element("div", "legend"); items.forEach(([name, value]) => { const item = element("span"); const dot = element("i"); dot.style.background = colors[categories.indexOf(name)] || colors[0]; item.append(dot, document.createTextNode(value === null ? categoryLabel(name) : `${categoryLabel(name)}: ${value}`)); row.append(item); }); return row; }
 function bindTooltip(canvas, hits) { canvas.addEventListener("mousemove", (event) => { const rect = canvas.getBoundingClientRect(), x = event.clientX - rect.left, y = event.clientY - rect.top; const hit = hits.reduce((best, point) => !best || Math.hypot(point.x - x, point.y - y) < Math.hypot(best.x - x, best.y - y) ? point : best, null); if (!hit || Math.hypot(hit.x - x, hit.y - y) > 42) return hideTooltip(); tooltip.textContent = hit.label; tooltip.style.left = `${event.clientX + 12}px`; tooltip.style.top = `${event.clientY + 12}px`; tooltip.hidden = false; }); canvas.addEventListener("mouseleave", hideTooltip); }
 function hideTooltip() { tooltip.hidden = true; }
 function animateNumber(node, end) { const start = performance.now(), duration = 520; const frame = (now) => { node.textContent = Math.round(end * Math.min((now - start) / duration, 1)).toLocaleString(); if (now - start < duration) requestAnimationFrame(frame); }; requestAnimationFrame(frame); }
 function element(tag, className = "", text = "") { const node = document.createElement(tag); node.className = className; if (text) node.textContent = text; return node; }
 function formatDate(value) { const date = new Date(value); return Number.isNaN(date) ? value || "Date unavailable" : new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(date); }
+function formatChartDate(value) { const date = new Date(`${value}T00:00:00`); return Number.isNaN(date) ? value : new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date); }
+function categoryLabel(value) { return value.charAt(0).toUpperCase() + value.slice(1); }
 function gridColor() { return getComputedStyle(document.body).getPropertyValue("--line"); } function mutedColor() { return getComputedStyle(document.body).getPropertyValue("--muted"); } function textColor() { return getComputedStyle(document.body).getPropertyValue("--text"); }
 
 document.querySelectorAll(".filter").forEach((button) => button.addEventListener("click", () => { state.category = button.dataset.category; document.querySelectorAll(".filter").forEach((item) => item.classList.toggle("active", item === button)); loadDashboard(); }));
+document.querySelectorAll(".nav-category").forEach((link) => link.addEventListener("click", () => { const button = document.querySelector(`.filter[data-category="${link.dataset.category}"]`); if (button) button.click(); }));
 document.querySelector("#search-input").addEventListener("input", (event) => { state.search = event.target.value; document.querySelector("#clear-search").hidden = !state.search; renderFeed(); });
 document.querySelector("#clear-search").addEventListener("click", () => { const input = document.querySelector("#search-input"); input.value = ""; state.search = ""; input.focus(); document.querySelector("#clear-search").hidden = true; renderFeed(); });
 document.querySelector("#refresh-button").addEventListener("click", () => loadDashboard({ refresh: true }));
 document.querySelector("#theme-toggle").addEventListener("click", () => { document.body.classList.toggle("light"); localStorage.setItem("radar-theme", document.body.classList.contains("light") ? "light" : "dark"); document.querySelector("#theme-toggle").setAttribute("aria-label", document.body.classList.contains("light") ? "Switch to dark theme" : "Switch to light theme"); if (state.stats) renderCharts(); });
+let resizeTimer;
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (state.stats) renderCharts(); }, 120); });
 if (localStorage.getItem("radar-theme") === "light") document.body.classList.add("light");
 
 function showAuthenticated(user) {
   state.user = user;
   document.querySelector("#auth-gate").hidden = true;
   document.querySelector("#app-header").hidden = false;
+  document.querySelector("#intelligence-nav").hidden = false;
   document.querySelector("#dashboard-content").hidden = false;
   document.querySelector("#user-menu").hidden = false;
   document.querySelector("#user-name").textContent = user.name;
@@ -177,6 +235,7 @@ function showAuth() {
   state.user = null; state.items = []; state.stats = null;
   document.querySelector("#auth-gate").hidden = false;
   document.querySelector("#app-header").hidden = true;
+  document.querySelector("#intelligence-nav").hidden = true;
   document.querySelector("#dashboard-content").hidden = true;
   document.querySelector("#user-panel").hidden = true;
 }
@@ -207,6 +266,7 @@ document.querySelector("#signup-form").addEventListener("submit", async (event) 
 
 async function openUserPanel(kind) {
   const panel = document.querySelector("#user-panel"), content = document.querySelector("#user-panel-content"); panel.hidden = false; content.replaceChildren(element("p", "", "Loading…"));
+  if (kind === "stack") { content.replaceChildren(element("h2", "", "My AI Stack"), element("p", "", "Your personal AI stack is coming soon. Saved tools will appear here after the verified tools directory launches.")); return; }
   if (kind === "preferences") {
     const preferences = await request("/preferences"); const form = document.createElement("form"); form.append(element("h2", "", "Preferences"));
     categories.forEach((category) => { const label = element("label"); const input = document.createElement("input"); input.type = "checkbox"; input.value = category; input.checked = preferences.categories.includes(category); label.append(input, document.createTextNode(category)); form.append(label); });
@@ -220,4 +280,8 @@ async function openUserPanel(kind) {
 document.querySelectorAll("[data-user-panel]").forEach((button) => button.addEventListener("click", () => openUserPanel(button.dataset.userPanel).catch(() => {})));
 document.querySelector("#close-user-panel").addEventListener("click", () => { document.querySelector("#user-panel").hidden = true; });
 document.querySelector("#logout-button").addEventListener("click", async () => { await apiRequest("/auth/logout", "POST"); showAuth(); });
+document.querySelector("#requirement-form").addEventListener("submit", async (event) => {
+  event.preventDefault(); const input = document.querySelector("#requirement-input"), results = document.querySelector("#requirement-results"); results.replaceChildren(element("p", "", "Searching verified tool signals…"));
+  try { const response = await apiRequest("/tool-search", "POST", { requirement: input.value }); results.replaceChildren(element("p", "requirement-message", response.message)); response.matches.forEach((item, index) => { const card = element("article", "requirement-result"); card.append(element("span", "badge", index === 0 ? "Best match for your requirement" : "Strong match"), element("strong", "", item.title), element("p", "", item.summary || "Relevant tool-related update."), element("small", "", `Why it matches: mentions your requirement in a real stored tool update from ${item.source}.`)); results.append(card); }); } catch (_) { results.replaceChildren(element("p", "requirement-message", "We could not search tool signals right now. Try again shortly.")); }
+});
 bootstrap();

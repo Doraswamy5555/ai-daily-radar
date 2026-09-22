@@ -182,9 +182,21 @@ def get_radar_statistics(
             ORDER BY substr(created_at, 1, 10)
             """
         ).fetchall()
+        category_daily_rows = connection.execute(
+            """
+            SELECT substr(created_at, 1, 10), category, COUNT(*)
+            FROM radar_items
+            GROUP BY substr(created_at, 1, 10), category
+            ORDER BY substr(created_at, 1, 10)
+            """
+        ).fetchall()
 
     category_counts.update({category: count for category, count in category_rows})
     relevance_distribution.update({str(score): count for score, count in relevance_rows})
+
+    category_daily_counts: dict[str, dict[str, int]] = {}
+    for day, category, count in category_daily_rows:
+        category_daily_counts.setdefault(day, {name: 0 for name in categories})[category] = count
 
     return {
         "total_items": total_items,
@@ -193,7 +205,34 @@ def get_radar_statistics(
         "source_counts": dict(source_rows),
         "relevance_distribution": relevance_distribution,
         "daily_counts": dict(daily_rows),
+        "category_daily_counts": category_daily_counts,
     }
+
+
+def search_tool_signals(
+    requirement: str, database_path: Path | str = DATABASE_PATH, limit: int = 8
+) -> list[dict[str, object]]:
+    """Find stored tool-category radar items relevant to a user requirement.
+
+    This is intentionally a transparent keyword match until a verified tools
+    directory is added. It never creates or recommends fictional tools.
+    """
+    terms = [term.lower() for term in requirement.split() if len(term) > 2]
+    if not terms:
+        return []
+    initialize_database(database_path)
+    clauses = " OR ".join("LOWER(title || ' ' || summary) LIKE ?" for _ in terms)
+    parameters: list[object] = [f"%{term}%" for term in terms] + [limit]
+    query = f"""
+        SELECT * FROM radar_items
+        WHERE category = 'tools' AND ({clauses})
+        ORDER BY relevance_score DESC, created_at DESC, id DESC
+        LIMIT ?
+    """
+    with _connect(database_path) as connection:
+        connection.row_factory = sqlite3.Row
+        rows = connection.execute(query, parameters).fetchall()
+    return [RadarItem(**dict(row)).to_dict() for row in rows]
 
 
 def create_user(

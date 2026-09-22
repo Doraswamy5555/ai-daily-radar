@@ -6,6 +6,7 @@ from database.db import (
     initialize_database,
     save_radar_item,
     save_radar_items,
+    search_tool_signals,
 )
 
 
@@ -126,3 +127,18 @@ def test_get_radar_statistics_returns_empty_database_counts(tmp_path):
     }
     assert statistics["source_counts"] == {}
     assert statistics["daily_counts"] == {}
+
+
+def test_statistics_include_real_category_daily_counts_and_tool_search(tmp_path):
+    database_path = tmp_path / "ai_daily_radar.db"
+    save_radar_items(
+        [
+            {**sample_item(url="https://example.com/video-tool", category="tools"), "title": "Video creation tool"},
+            sample_item(url="https://example.com/model-2", category="models"),
+        ], database_path,
+    )
+
+    statistics = get_radar_statistics(database_path)
+    assert sum(day["tools"] for day in statistics["category_daily_counts"].values()) == 1
+    matches = search_tool_signals("create video", database_path)
+    assert matches[0]["title"] == "Video creation tool"

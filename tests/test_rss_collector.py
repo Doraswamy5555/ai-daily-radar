@@ -67,3 +67,17 @@ def test_collect_recent_items_skips_a_feed_that_fails(monkeypatch):
     monkeypatch.setattr(rss_collector.feedparser, "parse", fake_parse)
 
     assert rss_collector.collect_recent_items() == []
+
+
+def test_normalize_item_cleans_html_and_entities():
+    item = rss_collector.normalize_item(
+        {
+            "title": "AI&nbsp;<strong>tool</strong>",
+            "link": "https://example.com/tool",
+            "summary": "<p>A&nbsp;useful <em>update</em>.</p>",
+        },
+        "Test Source",
+    )
+
+    assert item["title"] == "AI tool"
+    assert item["summary"] == "A useful update."

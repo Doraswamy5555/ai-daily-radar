@@ -6,3 +6,5 @@ pytest
 bcrypt
 email-validator
 itsdangerous
+gunicorn
+psycopg[binary]

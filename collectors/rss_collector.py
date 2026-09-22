@@ -1,6 +1,8 @@
 """Collect and normalize recent AI news from RSS feeds."""
 
 import logging
+import re
+from html import unescape
 from typing import Any
 
 import feedparser
@@ -57,7 +59,7 @@ def collect_recent_items() -> list[dict[str, str]]:
 
 def normalize_item(entry: Any, source_name: str) -> dict[str, str] | None:
     """Convert one RSS entry into the API's consistent item structure."""
-    title = entry.get("title", "").strip()
+    title = clean_rss_text(entry.get("title", ""))
     url = entry.get("link", "").strip()
 
     # A title and URL make an item useful; skip incomplete feed entries.
@@ -69,5 +71,12 @@ def normalize_item(entry: Any, source_name: str) -> dict[str, str] | None:
         "url": url,
         "published_at": entry.get("published", entry.get("updated", "")),
         "source": source_name,
-        "summary": entry.get("summary", entry.get("description", "")),
+        "summary": clean_rss_text(entry.get("summary", entry.get("description", ""))),
     }
+
+
+def clean_rss_text(value: str) -> str:
+    """Convert RSS HTML and entities into plain text suitable for the UI."""
+    without_tags = re.sub(r"<[^>]+>", " ", value or "")
+    normalized = " ".join(unescape(without_tags).split())
+    return re.sub(r"\s+([,.;:!?])", r"\1", normalized)

@@ -1,5 +1,4 @@
 from pathlib import Path
-import os
 from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
@@ -15,6 +14,7 @@ from backend.app.auth import (
     read_session_user_id,
     verify_password,
 )
+from backend.app.settings import get_settings
 from ai.processor import process_item
 from collectors.rss_collector import collect_recent_items
 from database.db import (
@@ -31,11 +31,13 @@ from database.db import (
     remove_saved_item_for_user,
     save_item_for_user,
     save_radar_items,
+    search_tool_signals,
     set_user_preferences,
 )
 
 
 app = FastAPI(title="AI Daily Radar API")
+settings = get_settings()
 initialize_database()
 FRONTEND_DIRECTORY = Path(__file__).resolve().parents[2] / "frontend"
 app.mount("/frontend", StaticFiles(directory=FRONTEND_DIRECTORY), name="frontend")
@@ -58,6 +60,10 @@ class PreferencesInput(BaseModel):
     categories: list[Literal["models", "tools", "research", "funding", "companies", "other"]]
 
 
+class RequirementSearchInput(BaseModel):
+    requirement: str = Field(min_length=3, max_length=300)
+
+
 def get_current_user(request: Request) -> dict[str, object]:
     """Require a valid signed session and return its public user record."""
     user_id = read_session_user_id(request.cookies.get(SESSION_COOKIE_NAME))
@@ -75,7 +81,7 @@ def set_session_cookie(response: Response, user_id: int) -> None:
         max_age=SESSION_MAX_AGE_SECONDS,
         httponly=True,
         samesite="lax",
-        secure=os.getenv("APP_ENV") == "production",
+        secure=settings.session_cookie_secure,
     )
 
 
@@ -197,3 +203,18 @@ def get_items(category: str | None = None) -> list[dict[str, object]]:
 def get_stats() -> dict[str, object]:
     """Return analytics calculated from stored AI Radar items."""
     return get_radar_statistics()
+
+
+@app.post("/tool-search")
+def tool_search(payload: RequirementSearchInput) -> dict[str, object]:
+    """Return real stored tool signals matching an expressed requirement."""
+    matches = search_tool_signals(payload.requirement)
+    return {
+        "requirement": payload.requirement.strip(),
+        "matches": matches,
+        "message": (
+            "Matching tool-related radar updates from the current database."
+            if matches
+            else "No verified tool matches are stored yet. The tools directory is still collecting data."
+        ),
+    }

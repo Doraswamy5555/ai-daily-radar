@@ -63,3 +63,12 @@ def test_get_stats_returns_database_statistics(monkeypatch):
 
     assert response.status_code == 200
     assert response.json() == expected_statistics
+
+
+def test_tool_search_returns_real_search_response(monkeypatch):
+    monkeypatch.setattr(main, "search_tool_signals", lambda requirement: [{"title": "Video tool"}])
+
+    response = TestClient(main.app).post("/tool-search", json={"requirement": "create video"})
+
+    assert response.status_code == 200
+    assert response.json()["matches"] == [{"title": "Video tool"}]

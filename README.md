@@ -91,6 +91,31 @@ dashboard renders these values as a trend line, category doughnut, source bar
 chart, and relevance bar chart using the browser's built-in Canvas API—no
 external chart library is used.
 
+## Discovery dashboard
+
+The dashboard is now organized around AI discovery rather than generic
+analytics. It includes:
+
+- An AI requirement search that queries real stored tool-category radar items.
+  If no matching verified tool signal exists, it says so instead of inventing a
+  recommendation.
+- A real multi-series **AI Growth Trend** for tools, models, and research. It
+  only renders when two or more stored days are available.
+- A real **AI Category Activity** bar chart for tools, models, research,
+  funding, and companies.
+- A live AI Activity summary and relevance-prioritized “Today's Important
+  Updates” feed.
+- Category navigation, private library links, and an explicit placeholder for
+  the future verified AI Tools Directory.
+
+RSS titles and summaries are converted to plain text before storage/display,
+so HTML markup and entities such as `&nbsp;` are not shown in cards.
+
+The requirement-search endpoint is `POST /tool-search` with a JSON body such
+as `{"requirement":"create a video"}`. It searches the existing stored radar
+data only; it is a foundation for the later tools directory, not a claim that
+the returned update is universally the best tool.
+
 ## Run tests
 
 From the repository root, run:
@@ -127,3 +152,31 @@ Set `SESSION_SECRET` to a long random value in production. When it is not set,
 the development server generates a temporary secret at startup, which signs
 users out after a restart. The dashboard at `/dashboard` displays a sign-in or
 sign-up experience until `/auth/me` confirms a session.
+
+## Deployment
+
+For production, set `APP_ENV=production`, configure a long random
+`SESSION_SECRET`, and set a database URL. The production process command is:
+
+```text
+gunicorn backend.app.main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+```
+
+`Dockerfile` and `Procfile` use this command. Never commit a real `.env` file,
+database password, or session secret. A production startup intentionally fails
+when `SESSION_SECRET` is missing, and production cookies are marked `Secure`.
+
+SQLite remains the zero-configuration development default:
+
+```text
+DATABASE_URL=sqlite:///database/ai_daily_radar.db
+```
+
+For PostgreSQL, provision a database, set `DATABASE_URL` to a standard
+`postgresql://username:password@host:5432/database_name` URL, and apply
+[`database/postgresql_schema.sql`](database/postgresql_schema.sql). The
+project includes the `psycopg` PostgreSQL driver and matching production schema
+so the current SQLite tables can be migrated without changing application
+models. The active MVP repository layer continues to use SQLite locally; a
+full production cutover should replace its SQLite query dialect with the
+PostgreSQL adapter before directing production traffic to the PostgreSQL URL.

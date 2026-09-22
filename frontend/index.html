@@ -26,6 +26,11 @@
         </details>
       </div>
     </header>
+    <nav id="intelligence-nav" class="intelligence-nav" aria-label="AI intelligence areas" hidden>
+      <div class="sidebar-group"><span class="sidebar-label">INTELLIGENCE</span><a class="active" href="/dashboard"><i>⌂</i>Dashboard</a><a href="#ai-search"><i>⌕</i>AI Search</a><a class="nav-category" data-category="tools" href="#important-updates"><i>⌁</i>Tools</a><a class="nav-category" data-category="models" href="#important-updates"><i>◇</i>Models</a><a class="nav-category" data-category="research" href="#important-updates"><i>▤</i>Research</a><a class="nav-category" data-category="funding" href="#important-updates"><i>$</i>Funding</a><a class="nav-category" data-category="companies" href="#important-updates"><i>▦</i>Companies</a></div>
+      <div class="sidebar-group library"><span class="sidebar-label">MY LIBRARY</span><button type="button" data-user-panel="stack"><i>◇</i>Saved Tools</button><button type="button" data-user-panel="saved"><i>▱</i>Saved News</button><button type="button" data-user-panel="stack"><i>◌</i>My AI Stack</button><button type="button" data-user-panel="history"><i>◷</i>History</button></div>
+      <div class="sidebar-upgrade"><strong>Upgrade to Pro</strong><span>Personalized recommendations and more.</span><button type="button" disabled>Coming soon</button></div>
+    </nav>
 
     <section id="auth-gate" class="auth-gate">
       <div class="auth-intro"><p class="eyebrow">AI INTELLIGENCE, PERSONALIZED</p><h1>Make sense of what’s changing in AI.</h1><p>Save meaningful updates, track your reading history, and shape your radar around the topics you follow.</p></div>
@@ -38,29 +43,30 @@
 
     <main id="dashboard-content" class="dashboard-shell" hidden>
       <section class="overview page-enter" aria-labelledby="overview-title">
-        <div><p class="eyebrow">AI INTELLIGENCE / LIVE RADAR</p><h1 id="overview-title">Today’s signal, <em>made clear.</em></h1><p class="lead">Track the developments shaping AI—from new models to the market moves behind them.</p></div>
+        <div><p class="eyebrow">AI INTELLIGENCE / LIVE RADAR</p><h1 id="overview-title">Today’s signal, <em>made clear.</em></h1><p class="lead">Discover what’s new, what matters, and what helps you.</p></div>
         <div class="status-pill"><span class="status-dot"></span><span id="status-text">Synchronizing radar</span></div>
+      </section>
+      <section id="ai-search" class="requirement-search" aria-labelledby="requirement-title">
+        <div><p class="eyebrow">AI TOOL DISCOVERY</p><h2 id="requirement-title">What are you trying to do?</h2><p>Describe your goal and we’ll surface relevant, verified tool signals from the radar.</p></div>
+        <form id="requirement-form"><label class="sr-only" for="requirement-input">Your AI requirement</label><span class="requirement-icon" aria-hidden="true">✦</span><input id="requirement-input" name="requirement" minlength="3" required placeholder="What are you trying to do?" /><button class="primary-button" type="submit">Find AI Tools →</button></form><p class="requirement-hints">Examples: Create a website · Generate a video · Analyze data · Write a research paper</p>
+        <div id="requirement-results" class="requirement-results" aria-live="polite"></div>
       </section>
 
       <section class="kpi-grid" id="kpi-grid" aria-label="Radar overview statistics"></section>
 
-      <section class="analytics-section" aria-labelledby="analytics-title">
-        <div class="section-heading"><div><p class="eyebrow">ANALYTICS</p><h2 id="analytics-title">Signal distribution</h2></div><p>Calculated from your stored radar items.</p></div>
-        <div class="chart-grid">
-          <article class="chart-card chart-wide"><header><h3>AI Activity Trend</h3><p>Stored updates by day</p></header><div class="chart-area" id="activity-chart"></div></article>
-          <article class="chart-card"><header><h3>Category Distribution</h3><p>Topics in the radar</p></header><div class="chart-area" id="category-chart"></div></article>
-          <article class="chart-card"><header><h3>Source Distribution</h3><p>Where updates originate</p></header><div class="chart-area" id="source-chart"></div></article>
-          <article class="chart-card chart-wide"><header><h3>Relevance Distribution</h3><p>Score spread across stored updates</p></header><div class="chart-area" id="relevance-chart"></div></article>
-        </div>
+      <section class="discovery-insights" aria-labelledby="analytics-title">
+        <article class="activity-card"><p class="eyebrow">LIVE INTELLIGENCE</p><h2>AI Activity</h2><p id="activity-summary">Collecting stored updates…</p><a href="#important-updates">Explore the feed →</a></article>
+        <div class="chart-grid"><article class="chart-card chart-wide"><header><h3 id="analytics-title">AI Growth Trend</h3><p>AI developments across tools, models and research</p></header><div class="chart-area" id="growth-chart"></div></article><article class="chart-card"><header><h3>AI Category Activity</h3><p>Real stored activity by intelligence area</p><div id="period-note" class="period-note">All stored data</div></header><div class="chart-area" id="category-activity-chart"></div></article></div>
       </section>
 
-      <section class="feed-section" aria-labelledby="feed-title">
-        <div class="section-heading feed-heading"><div><p class="eyebrow">RADAR FEED</p><h2 id="feed-title">Latest AI Radar</h2></div><p id="item-count" aria-live="polite"></p></div>
+      <section id="important-updates" class="feed-section" aria-labelledby="feed-title">
+        <div class="section-heading feed-heading"><div><p class="eyebrow">PRIORITY RADAR</p><h2 id="feed-title">Today's Important Updates</h2></div><p id="item-count" aria-live="polite"></p></div>
         <nav class="filters" aria-label="Filter radar items by category">
           <button class="filter active" data-category="" type="button">All</button><button class="filter" data-category="models" type="button">Models</button><button class="filter" data-category="tools" type="button">Tools</button><button class="filter" data-category="research" type="button">Research</button><button class="filter" data-category="funding" type="button">Funding</button><button class="filter" data-category="companies" type="button">Companies</button><button class="filter" data-category="other" type="button">Other</button>
         </nav>
         <div id="feed" class="feed" aria-live="polite"></div>
       </section>
+      <section class="future-directory" aria-labelledby="directory-title"><p class="eyebrow">COMING NEXT</p><h2 id="directory-title">AI Tools Directory</h2><p>Verified tool profiles with use cases, pricing, platforms, and official links will appear here as they are collected.</p></section>
     </main>
     <aside id="user-panel" class="user-panel" hidden aria-live="polite"><button id="close-user-panel" class="icon-button" type="button" aria-label="Close panel">×</button><div id="user-panel-content"></div></aside>
     <div id="tooltip" class="chart-tooltip" role="status" hidden></div>
